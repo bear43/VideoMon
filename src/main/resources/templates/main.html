@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity3" lang="ru">
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous" />
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous" />
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Главная страница</title>
+</head>
+<body>
+<nav class="navbar navbar-default">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="/">Securitron</a>
+        </div>
+        <div>
+            <ul class="nav navbar-nav">
+                <li class="navbar-link"><a href="/user_cabinet">Личный кабинет</a></li>
+                <li class="navbar-link"><a href="/add_video">Добавить видео</a></li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                <form id="log_out_form" th:action="@{/logout}" method="post">
+                </form>
+                <li class="navbar-link"><a href="#" id="log_out">Выйти</a></li>
+                <script>
+                    $("#log_out").on("click", function ()
+                    {
+                        $("#log_out_form").submit();
+                    });
+                </script>
+            </ul>
+        </div>
+    </div>
+</nav>
+<div class="container">
+    <h1 th:inline="text">Здравствуйте [[${user.firstname}]]!</h1>
+    <div th:if="${message} != null">
+        <label class="text-info">[[${message}]]</label>
+    </div>
+    <div id="uniBrowser">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th class="col-md-3">Этаж</th>
+                <th class="col-md-3">Название</th>
+                <th class="col-md-3">Дата добавления</th>
+            </tr>
+            </thead>
+            <tbody id="tableBody">
+            </tbody>
+        </table>
+        <input id="prev_page" type="button" value="Пердыудщая страница"/>
+        <input id="next_page" type="button" value="Следующая страница"/>
+        <label>Элементов на странице: <input id="lim" type="number" value="10" min="1" max="100"/></label>
+    </div>
+    <div class="idable" hidden>
+    </div>
+</div>
+<form id="form" action="/get_video" method="post" hidden>
+    <input type="hidden" id="form_id" name="id"/>
+</form>
+<script>
+    var lim = 10;
+    var _list;
+    var currentPage = 1;
+    var totalPages = 0;
+    var totalElements = 0;
+    //Нужно получить все данные ajax запросом
+    async function getPagedList(page, limit)
+    {
+        var locData;
+        await $.ajax({
+        url: "/get_paged_list",
+        type: "POST",
+        data: JSON.stringify({
+            page: page,
+            limit: limit
+        }),
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        success: function (data) {
+            locData = data;
+        }
+    });
+        return locData;
+    }
+    async function getAllList()
+    {
+        var locData;
+        await $.ajax({
+        url: "/get_all",
+        type: "POST",
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        success: function (data)
+        {
+            locData = data;
+        }
+    });
+        return locData;
+    }
+    async function getTotalPages(limit)
+    {
+        var locData;
+        await $.ajax({
+        url: "/get_total_pages",
+        type: "POST",
+        data: JSON.stringify({
+            limit: limit
+        }),
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        success: function (data) {
+            locData = data;
+        }
+    });
+        return locData;
+    }
+    async function getTotal()
+    {
+        var locData;
+        await $.ajax({
+        url: "/get_total_count",
+        type: "POST",
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        success: function (data) {
+            locData = data;
+        }
+    });
+        return locData;
+    }
+    async function receiveData()
+    {
+        totalPages = await getTotalPages(lim);
+        totalElements = await getTotal();
+        if(currentPage > totalPages)
+        {
+            var mod = totalElements - (totalPages * lim);
+            if (mod > 0)
+            {
+                _list = await getPagedList(currentPage-1, lim);
+            }
+            else
+            {
+                return;
+            }
+        }
+        else
+        {
+            _list = await getPagedList(currentPage - 1, lim);
+        }
+    }
+    function buildBrowser(list)
+    {
+        $("#tableBody")[0].innerHTML = "";
+        for(var i in list)
+        {
+            $("#tableBody")[0].innerHTML += "<div class='idable' hidden>" + list[i].id + "</div>";
+            $("#tableBody")[0].
+                innerHTML += "<tr class='clickable'>" +
+                "<td class='col-md-3'>" + list[i].floor + "</td>" +
+                "<td class='col-md-3'>" + list[i].title + "</td>" +
+                "<td class='col-md-3'>" + list[i].date + "</td>" +
+                "</tr>";
+        }
+    }
+    function hook()
+    {
+        $(".clickable").on("click", function (a)
+        {
+            $("#form_id")[0].value = a.currentTarget.previousSibling.innerText;
+            $("#form").submit();
+        });
+        $("#lim").on("change", function(){
+            lim = $("#lim")[0].value;
+            updateBrowser(true);
+        });
+        $("#next_page").on("click", function() {
+            if(currentPage < totalPages) currentPage++;
+            else currentPage = 1;
+            updateBrowser(true);
+        });
+        $("#prev_page").on("click", function() {
+            if(currentPage > 1) currentPage--;
+            else if(currentPage < 1) currentPage = 1;
+            updateBrowser(true);
+        });
+    }
+    async function updateBrowser(upd)
+    {
+        if(upd === true) await receiveData();
+        buildBrowser(_list);
+        hook();
+    }
+
+    $(document).ready(function () {
+       updateBrowser(true);
+    });
+</script>
+</body>
+</html>
