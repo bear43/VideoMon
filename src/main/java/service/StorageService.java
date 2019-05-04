@@ -14,10 +14,19 @@ public class StorageService
 
     private String rootPath;
 
+    private static StorageService storageService;
+
     public StorageService(String rootPath) throws IOException
     {
         this.rootPath = rootPath;
+        if(storageService == null)
+            storageService = this;
         createRootDir();
+    }
+
+    public static StorageService getInstance()
+    {
+        return storageService;
     }
 
     public void createRootDir() throws IOException
@@ -66,13 +75,14 @@ public class StorageService
             Files.createDirectory(path);
     }
 
-    public ResponseEntity<Resource> getHttpFile(String filename) throws Exception
+    public ResponseEntity<Resource> getHttpFile(String filename, String filetitle) throws Exception
     {
         ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(createPathIntance(filename)));
 
         return ResponseEntity.ok()
                 .contentLength(resource.contentLength())
                 .contentType(MediaType.parseMediaType("application/octet-stream"))
+                .header("Content-Disposition", "attachment; filename=" + filetitle)
                 .body(resource);
     }
 

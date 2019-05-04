@@ -21,7 +21,8 @@
         <div>
             <ul class="nav navbar-nav">
                 <li class="navbar-link"><a href="/user_cabinet">Личный кабинет</a></li>
-                <li class="navbar-link"><a href="/add_video">Добавить видео</a></li>
+                <li class="navbar-link" th:if="${user.isAdmin()} == true"><a href="/add_video">Добавить видео</a></li>
+                <li class="navbar-link" th:if="${user.isAdmin()} == true"><a href="/del_video">Удалить видео</a></li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
                 <form id="log_out_form" th:action="@{/logout}" method="post">
@@ -37,6 +38,8 @@
         </div>
     </div>
 </nav>
+<div hidden id="flr" th:text="${user.isAdmin()} ? -1 : ${user.getFloor()}">
+</div>
 <div class="container">
     <h1 th:inline="text">Здравствуйте [[${user.firstname}]]!</h1>
     <div th:if="${message} != null">
@@ -54,9 +57,11 @@
             <tbody id="tableBody">
             </tbody>
         </table>
-        <input id="prev_page" type="button" value="Пердыудщая страница"/>
-        <input id="next_page" type="button" value="Следующая страница"/>
-        <label>Элементов на странице: <input id="lim" type="number" value="10" min="1" max="100"/></label>
+        <div th:if="${user.isAdmin()} == true">
+            <input id="prev_page" type="button" value="Пердыудщая страница"/>
+            <input id="next_page" type="button" value="Следующая страница"/>
+            <label>Элементов на странице: <input id="lim" type="number" value="10" min="1" max="100"/></label>
+        </div>
     </div>
     <div class="idable" hidden>
     </div>
@@ -139,25 +144,47 @@
     });
         return locData;
     }
-    async function receiveData()
+    async function getVideosByFloor(floor)
     {
-        totalPages = await getTotalPages(lim);
-        totalElements = await getTotal();
-        if(currentPage > totalPages)
-        {
-            var mod = totalElements - (totalPages * lim);
-            if (mod > 0)
-            {
-                _list = await getPagedList(currentPage-1, lim);
-            }
-            else
-            {
-                return;
+        var locData;
+        await $.ajax({
+        url: "/get_all_by_floor",
+        type: "POST",
+        data: JSON.stringify({
+            floor: floor
+        }),
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        success: function (data) {
+            locData = data;
+        }
+        });
+        return locData;
+    }
+    async function receiveData(floor)
+    {
+        if(floor === "-1") {
+            totalPages = await
+            getTotalPages(lim);
+            totalElements = await
+            getTotal();
+            if (currentPage > totalPages) {
+                var mod = totalElements - (totalPages * lim);
+                if (mod > 0) {
+                    _list = await
+                    getPagedList(currentPage - 1, lim);
+                } else {
+                    return;
+                }
+            } else {
+                _list = await
+                getPagedList(currentPage - 1, lim);
             }
         }
         else
         {
-            _list = await getPagedList(currentPage - 1, lim);
+            _list = await getVideosByFloor(floor);
         }
     }
     function buildBrowser(list)
@@ -198,7 +225,10 @@
     }
     async function updateBrowser(upd)
     {
-        if(upd === true) await receiveData();
+        if(upd === true) {
+            await
+            receiveData($("#flr")[0].innerText);
+        }
         buildBrowser(_list);
         hook();
     }

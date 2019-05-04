@@ -51,4 +51,16 @@ public class VideoService
     {
         return videoRepository.findByDate(date);
     }
+
+    public boolean deleteById(long id) throws Exception
+    {
+        Video v = videoRepository.getOne(id);
+        if(v != null)
+        {
+            videoRepository.delete(v);
+            StorageService.getInstance().removeFileOrDir(v.getPath());
+            return true;
+        }
+        return false;
+    }
 }

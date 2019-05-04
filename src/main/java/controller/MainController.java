@@ -61,7 +61,6 @@ public class MainController
     @GetMapping("/")
     public String main(Map<String, Object> model)
     {
-        model.put("admin", userService.getCurrentUser().isAdmin());
         model.put("user", userService.getCurrentUser());
         return "main";
     }
@@ -158,7 +157,7 @@ public class MainController
         try
         {
             if(video.getFloor() == userService.getCurrentUser().getFloor() || userService.getCurrentUser().isAdmin())
-                return storageService.getHttpFile(video.getPath());
+                return storageService.getHttpFile(video.getPath(), video.getTitle());
             else
                 return null;
         }
@@ -166,5 +165,32 @@ public class MainController
         {
             return null;
         }
+    }
+
+    @GetMapping("/del_video")
+    public String del_video(Map<String, Object> model)
+    {
+        model.put("videos", videoService.getVideoRepository().findAll());
+        return "del_video";
+    }
+
+    @PostMapping("/del_video")
+    public String del_video(long id, Map<String, Object> model, RedirectAttributes attr)
+    {
+        if(id != -1)
+        {
+            try
+            {
+                if (videoService.deleteById(id))
+                    model.put("message", "Видео успешно удалено!");
+                else
+                    model.put("message", "Видео не было удалено!");
+            } catch (Exception ex)
+            {
+                model.put("message", "Произошла ошибка при удалении: " + ex.getMessage());
+                return del_video(model);
+            }
+        }
+        return del_video(model);
     }
 }
